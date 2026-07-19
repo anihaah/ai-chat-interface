@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anihaa's Neural Matrix Core</title>
+    <style>
+        :root {
+            --neon-pink: #ff007f;
+            --neon-cyan: #00f3ff;
+            --neon-green: #39ff14;
+            --bg-dark: #06060c;
+            --panel-bg: rgba(10, 10, 25, 0.6);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: #fff;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Matrix Rain Background */
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            opacity: 0.15;
+        }
+
+        /* Main Workspace */
+        .dashboard {
+            position: relative;
+            z-index: 2;
+            width: 95%;
+            max-width: 900px;
+            height: 85vh;
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 2px solid var(--neon-cyan);
+            border-radius: 16px;
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.2), inset 0 0 15px rgba(0, 243, 255, 0.1);
+            display: grid;
+            grid-template-columns: 300px 1 flex;
+            grid-template-areas: "sidebar main";
+            overflow: hidden;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+                grid-template-areas: "main";
+            }
+            .sidebar { display: none; }
+        }
+
+        /* Sidebar Controls */
+        .sidebar {
+            grid-area: sidebar;
+            background: rgba(0, 0, 0, 0.4);
+            border-right: 1px solid rgba(0, 243, 255, 0.3);
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .core-status h3 {
+            color: var(--neon-pink);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            text-shadow: 0 0 8px var(--neon-pink);
+        }
+
+        .stat-knob {
+            margin-bottom: 15px;
+        }
+
+        .stat-knob label {
+            display: block;
+            font-size: 0.8rem;
+            color: #8a8a9e;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        .slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #1a1a3a;
+            border-radius: 5px;
+            outline: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--neon-cyan);
+            cursor: pointer;
+            box-shadow: 0 0 8px var(--neon-cyan);
+        }
+
+        /* Main Core */
+        .main-core {
+            grid-area: main;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .terminal-header {
+            padding: 15px 20px;
+            background: rgba(0, 243, 255, 0.05);
+            border-bottom: 1px solid rgba(0, 243, 255, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .pulse-node {
+            width: 10px;
+            height: 10px;
+            background-color: var(--neon-green);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--neon-green);
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0.3; }
+        }
+
+        .terminal-body {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .log-entry {
+            line-height: 1.5;
+            font-size: 0.9rem;
+            animation: scanline 0.2s ease-out;
+        }
+
+        .log-entry.system { color: #8a8a9e; }
+        .log-entry.user { color: var(--neon-cyan); }
+        .log-entry.core { color: #fff; }
+
+        .terminal-input-area {
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-top: 1px solid rgba(0, 243, 255, 0.2);
+            display: flex;
+            gap: 10px;
+        }
+
+        .prompt-symbol {
+            color: var(--neon-pink);
+            font-weight: bold;
+            font-size: 1.2rem;
+            align-self: center;
+        }
+
+        input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid rgba(0, 243, 255, 0.4);
+            padding: 10px 5px;
+            color: #fff;
+            outline: none;
+            font-size: 1rem;
+        }
+
+        input:focus {
+            border-bottom-color: var(--neon-pink);
+        }
+
+        /* Digital Meter Component */
+        .meter-bar {
+            width: 100%;
+            height: 12px;
+            background: #111;
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            border-radius: 3px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .meter-fill {
+            height: 100%;
+            width: 85%;
+            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink));
+            box-shadow: 0 0 10px var(--neon-cyan);
+            transition: width 0.4s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="matrix"></canvas>
+
+    <div class="dashboard">
+        <div class="sidebar">
+            <div class="core-status">
+                <h3>System Config</h3>
+                <div class="stat-knob">
+                    <label>Aura Sync Mode</label>
+                    <div class="meter-bar"><div class="meter-fill" id="auraFill"></div></div>
+                </div>
+                <div class="stat-knob">
+                    <label>Brainpower Allocator</label>
+                    <input type="range" class="slider" min="10" max="100" value="95" oninput="updateMeter(this.value)">
+                </div>
+            </div>
+            <div class="core-status" style="margin-top: auto;">
+                <p style="font-size: 0.75rem; color: var(--neon-cyan)">// CORE: ANIHAA_OS</p>
+                <p style="font-size: 0.75rem; color: #666">// SYSTEM: STABLE</p>
+            </div>
+        </div>
+
+        <div class="main-core">
+            <div class="terminal-header">
+                <span style="letter-spacing: 1px; font-weight: bold;">NEURAL_INTERFACE_v2.06</span>
+                <div class="pulse-node"></div>
+            </div>
+            
+            <div class="terminal-body" id="terminalBody">
+                <div class="log-entry system">[SYSTEM INITIALIZED] Welcome to the internal matrix main-frame.</div>
+                <div class="log-entry core">> AuraBot initialized. Send terminal query string. (Try 'help', 'status', 'ai', 'ping')</div>
+            </div>
+
+            <div class="terminal-input-area">
+                <span class="prompt-symbol">anihaa@core:~$</span>
+                <input type="text" id="terminalInput" placeholder="Input access code..." autocomplete="off" onkeypress="handleCommand(event)">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Matrix Rain Logic
+        const canvas = document.getElementById('matrix');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&';
+        const alphabet = letters.split('');
+        const fontSize = 14;
+        const columns = canvas.width / fontSize;
+        const rainDrops = Array(Math.floor(columns)).fill(1);
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(6, 6, 12, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#0f0'; 
+            ctx.font = fontSize + 'px monospace';
+
+            for (let i = 0; i < rainDrops.length; i++) {
+                const text = alphabet[Math.floor(Math.random() * alphabet.length)];
+                ctx.fillStyle = Math.random() > 0.95 ? '#00f3ff' : '#39ff14';
+                ctx.fillText(text, i * fontSize, rainDrops[i] * fontSize);
+                if (rainDrops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    rainDrops[i] = 0;
+                }
+                rainDrops[i]++;
+            }
+        }
+        setInterval(drawMatrix, 30);
+
+        // Control Panel Logic
+        function updateMeter(val) {
+            document.getElementById('auraFill').style.width = val + '%';
+        }
+
+        // Terminal Interaction Core
+        const terminalBody = document.getElementById('terminalBody');
+        const terminalInput = document.getElementById('terminalInput');
+
+        const db = {
+            "help": "Available vectors: [status] [ai] [ping] [clear] [srcw]",
+            "status": "System: Operational | Brainwaves: Mainlined | Coding Motivation: Maxed Out. ✨",
+            "ai": "Artificial Intelligence stack active. Deep Learning pipeline priming. Future is currently being written.",
+            "ping": "Pong! Connection latency: 0.00ms. Absolute speed runtime.",
+            "srcw": "Accessing Institutional Records... B.Sc Computer Science (AI) confirmed at Sri Ramakrishna College for Women. Elite tier.",
+            "clear": "CLEAR_COMMAND"
+        };
+
+        function handleCommand(e) {
+            if (e.key === 'Enter') {
+                const inputVal = terminalInput.value.trim();
+                if (!inputVal) return;
+
+                // Log User Entry
+                appendLog(`anihaa@core:~$ ${inputVal}`, 'user');
+                terminalInput.value = '';
+
+                setTimeout(() => {
+                    const cleanCmd = inputVal.toLowerCase();
+                    
+                    if(cleanCmd === 'clear') {
+                        terminalBody.innerHTML = '';
+                        return;
+                    }
+
+                    let output = db[cleanCmd] || `Command not found: '${inputVal}'. Enter 'help' for secure systems protocol.`;
+                    appendLog(`> ${output}`, 'core');
+                }, 250);
+            }
+        }
+
+        function appendLog(text, type) {
+            const entry = document.createElement('div');
+            entry.classList.add('log-entry', type);
+            entry.innerText = text;
+            terminalBody.appendChild(entry);
+            terminalBody.scrollTop = terminalBody.scrollHeight;
+        }
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+</html>
