@@ -4,7 +4,7 @@
   "metadata": {
     "colab": {
       "provenance": [],
-      "authorship_tag": "ABX9TyMMZSODZ2DOF4wH+JSEGX4c",
+      "authorship_tag": "ABX9TyOMZHGRJQJF1JuQOE61ELzG",
       "include_colab_link": true
     },
     "kernelspec": {
@@ -27,24 +27,16 @@
       ]
     },
     {
-      "cell_type": "code",
-      "execution_count": 1,
-      "metadata": {
-        "colab": {
-          "base_uri": "https://localhost:8080/"
-        },
-        "id": "DHeYJ1iwFvHX",
-        "outputId": "e9eefeba-ad28-45b9-bb56-4fb6f6f8de6d"
-      },
-      "outputs": [
-        {
-          "output_type": "stream",
-          "name": "stdout",
-          "text": [
-            "Model and Scaler saved successfully!\n"
-          ]
-        }
+      "cell_type": "markdown",
+      "source": [
+        "1. Data Preprocessing & EDA"
       ],
+      "metadata": {
+        "id": "iZJuVeK3tswn"
+      }
+    },
+    {
+      "cell_type": "code",
       "source": [
         "import pandas as pd\n",
         "import numpy as np\n",
@@ -52,49 +44,359 @@
         "import seaborn as sns\n",
         "from sklearn.model_selection import train_test_split\n",
         "from sklearn.preprocessing import StandardScaler, LabelEncoder\n",
-        "from sklearn.ensemble import RandomForestClassifier\n",
-        "from sklearn.metrics import classification_report, accuracy_score\n",
+        "from sklearn.linear_model import LogisticRegression\n",
+        "from sklearn.metrics import accuracy_score, classification_report, confusion_matrix\n",
         "import joblib\n",
         "\n",
-        "# 1. Dataset Generation\n",
+        "# Create dummy synthetic dataset for genetic disorder risk classification\n",
         "np.random.seed(42)\n",
-        "n_samples = 1000\n",
+        "n_samples = 500\n",
         "\n",
-        "data = {\n",
-        "    'Patient_Age': np.random.randint(1, 80, n_samples),\n",
-        "    'Blood_Cell_Count': np.random.uniform(4.0, 11.0, n_samples),\n",
-        "    'Gene_Mutations': np.random.randint(0, 5, n_samples),\n",
-        "    'Family_History': np.random.choice(['Yes', 'No'], n_samples),\n",
-        "    'Severity': np.random.choice(['Low', 'Medium', 'High'], n_samples),\n",
-        "    'Genetic_Disorder': np.random.choice([0, 1], n_samples, p=[0.7, 0.3])\n",
-        "}\n",
+        "data = pd.DataFrame({\n",
+        "    'Age': np.random.randint(1, 80, n_samples),\n",
+        "    'Blood_Pressure': np.random.randint(80, 140, n_samples),\n",
+        "    'Gene_Mutation_Score': np.random.uniform(0, 1, n_samples),\n",
+        "    'Family_History': np.random.choice([0, 1], n_samples),\n",
+        "    'Disorder_Risk': np.random.choice([0, 1], n_samples, p=[0.7, 0.3])\n",
+        "})\n",
         "\n",
-        "df = pd.DataFrame(data)\n",
+        "# Exploratory Data Analysis (EDA)\n",
+        "print(\"Dataset Info:\")\n",
+        "print(data.info())\n",
+        "print(\"\\nClass Distribution:\")\n",
+        "print(data['Disorder_Risk'].value_counts())\n",
         "\n",
-        "# 2. Preprocessing & Encoding\n",
-        "le_fam = LabelEncoder()\n",
-        "df['Family_History'] = le_fam.fit_transform(df['Family_History'])\n",
+        "# Splitting Features and Target\n",
+        "X = data.drop(columns=['Disorder_Risk'])\n",
+        "y = data['Disorder_Risk']\n",
         "\n",
-        "le_sev = LabelEncoder()\n",
-        "df['Severity'] = le_sev.fit_transform(df['Severity'])\n",
-        "\n",
-        "X = df.drop(columns=['Genetic_Disorder'])\n",
-        "y = df['Genetic_Disorder']\n",
-        "\n",
-        "X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)\n",
+        "X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)\n",
         "\n",
         "scaler = StandardScaler()\n",
         "X_train_scaled = scaler.fit_transform(X_train)\n",
-        "X_test_scaled = scaler.transform(X_test)\n",
+        "X_test_scaled = scaler.transform(X_test)"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "VQYoqkxLtwOQ",
+        "outputId": "4a9cccc1-2303-4348-854f-c8ebc64c460c"
+      },
+      "execution_count": 4,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Dataset Info:\n",
+            "<class 'pandas.core.frame.DataFrame'>\n",
+            "RangeIndex: 500 entries, 0 to 499\n",
+            "Data columns (total 5 columns):\n",
+            " #   Column               Non-Null Count  Dtype  \n",
+            "---  ------               --------------  -----  \n",
+            " 0   Age                  500 non-null    int64  \n",
+            " 1   Blood_Pressure       500 non-null    int64  \n",
+            " 2   Gene_Mutation_Score  500 non-null    float64\n",
+            " 3   Family_History       500 non-null    int64  \n",
+            " 4   Disorder_Risk        500 non-null    int64  \n",
+            "dtypes: float64(1), int64(4)\n",
+            "memory usage: 19.7 KB\n",
+            "None\n",
+            "\n",
+            "Class Distribution:\n",
+            "Disorder_Risk\n",
+            "0    363\n",
+            "1    137\n",
+            "Name: count, dtype: int64\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "c70fafde"
+      },
+      "source": [
+        "### 2. ML Model Development & Evaluation"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "abe502fe",
+        "outputId": "3137cbb8-e975-4edf-ceaf-a7057ba88c09"
+      },
+      "source": [
+        "# Train Logistic Regression Model\n",
+        "model = LogisticRegression()\n",
+        "model.fit(X_train_scaled, y_train)\n",
         "\n",
-        "# 3. Model Training\n",
-        "rf_model = RandomForestClassifier(n_estimators=100, random_state=42)\n",
-        "rf_model.fit(X_train_scaled, y_train)\n",
+        "# Evaluation\n",
+        "y_pred = model.predict(X_test_scaled)\n",
+        "print(\"Accuracy:\", accuracy_score(y_test, y_pred))\n",
+        "print(\"\\nClassification Report:\\n\", classification_report(y_test, y_pred))\n",
         "\n",
-        "# 4. Save Model Files\n",
-        "joblib.dump(rf_model, 'model.pkl')\n",
+        "# Save the trained model and scaler\n",
+        "joblib.dump(model, 'model.pkl')\n",
         "joblib.dump(scaler, 'scaler.pkl')\n",
         "print(\"Model and Scaler saved successfully!\")"
+      ],
+      "execution_count": 5,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Accuracy: 0.71\n",
+            "\n",
+            "Classification Report:\n",
+            "               precision    recall  f1-score   support\n",
+            "\n",
+            "           0       0.71      1.00      0.83        71\n",
+            "           1       0.00      0.00      0.00        29\n",
+            "\n",
+            "    accuracy                           0.71       100\n",
+            "   macro avg       0.35      0.50      0.42       100\n",
+            "weighted avg       0.50      0.71      0.59       100\n",
+            "\n",
+            "Model and Scaler saved successfully!\n"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stderr",
+          "text": [
+            "/usr/local/lib/python3.13/dist-packages/sklearn/metrics/_classification.py:1565: UndefinedMetricWarning: Precision is ill-defined and being set to 0.0 in labels with no predicted samples. Use `zero_division` parameter to control this behavior.\n",
+            "  _warn_prf(average, modifier, f\"{metric.capitalize()} is\", len(result))\n",
+            "/usr/local/lib/python3.13/dist-packages/sklearn/metrics/_classification.py:1565: UndefinedMetricWarning: Precision is ill-defined and being set to 0.0 in labels with no predicted samples. Use `zero_division` parameter to control this behavior.\n",
+            "  _warn_prf(average, modifier, f\"{metric.capitalize()} is\", len(result))\n",
+            "/usr/local/lib/python3.13/dist-packages/sklearn/metrics/_classification.py:1565: UndefinedMetricWarning: Precision is ill-defined and being set to 0.0 in labels with no predicted samples. Use `zero_division` parameter to control this behavior.\n",
+            "  _warn_prf(average, modifier, f\"{metric.capitalize()} is\", len(result))\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "dca4f193"
+      },
+      "source": [
+        "### 3. Generate Flask API Backend (`app.py`)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "e38465d8",
+        "outputId": "e5f215f6-97ba-4981-c6bd-9180c70ab8ea"
+      },
+      "source": [
+        "%%writefile app.py\n",
+        "from flask import Flask, request, jsonify\n",
+        "import joblib\n",
+        "import numpy as np\n",
+        "\n",
+        "app = Flask(__name__)\n",
+        "\n",
+        "# Load saved model and scaler\n",
+        "model = joblib.load('model.pkl')\n",
+        "scaler = joblib.load('scaler.pkl')\n",
+        "\n",
+        "@app.route('/')\n",
+        "def home():\n",
+        "    return \"Genetic Disorder Risk Prediction API is Running!\"\n",
+        "\n",
+        "@app.route('/predict', methods=['POST'])\n",
+        "def predict():\n",
+        "    data = request.get_json()\n",
+        "    features = np.array([[\n",
+        "        data['Age'],\n",
+        "        data['Blood_Pressure'],\n",
+        "        data['Gene_Mutation_Score'],\n",
+        "        data['Family_History']\n",
+        "    ]])\n",
+        "\n",
+        "    scaled_features = scaler.transform(features)\n",
+        "    prediction = model.predict(scaled_features)[0]\n",
+        "    probability = model.predict_proba(scaled_features)[0][1]\n",
+        "\n",
+        "    return jsonify({\n",
+        "        'risk_prediction': int(prediction),\n",
+        "        'risk_probability': float(probability)\n",
+        "    })\n",
+        "\n",
+        "if __name__ == '__main__':\n",
+        "    app.run(debug=True, port=5000)"
+      ],
+      "execution_count": 2,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Writing app.py\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "8cb024da"
+      },
+      "source": [
+        "### 4. Generate Streamlit Interface (`streamlit_app.py`)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "cf0a3c27",
+        "outputId": "2944ce06-1251-4948-e97a-5ff7617efc4c"
+      },
+      "source": [
+        "%%writefile streamlit_app.py\n",
+        "import streamlit as st\n",
+        "import numpy as np\n",
+        "import joblib\n",
+        "\n",
+        "st.set_page_config(page_title=\"Genetic Disorder Classifier\", layout=\"centered\")\n",
+        "\n",
+        "st.title(\"🧬 Genetic Disorder Risk Classification System\")\n",
+        "st.write(\"Predict the risk of genetic disorders based on patient clinical parameters.\")\n",
+        "\n",
+        "# Load model and scaler\n",
+        "model = joblib.load('model.pkl')\n",
+        "scaler = joblib.load('scaler.pkl')\n",
+        "\n",
+        "# User Input Form\n",
+        "st.header(\"Enter Patient Details\")\n",
+        "age = st.number_input(\"Age\", min_value=1, max_value=100, value=25)\n",
+        "bp = st.number_input(\"Blood Pressure (mmHg)\", min_value=50, max_value=200, value=120)\n",
+        "gene_score = st.slider(\"Gene Mutation Score\", 0.0, 1.0, 0.5)\n",
+        "family_hist = st.selectbox(\"Family History of Genetic Disorder\", [0, 1], format_func=lambda x: \"Yes\" if x == 1 else \"No\")\n",
+        "\n",
+        "if st.button(\"Predict Risk\"):\n",
+        "    features = np.array([[age, bp, gene_score, family_hist]])\n",
+        "    scaled_features = scaler.transform(features)\n",
+        "    prediction = model.predict(scaled_features)[0]\n",
+        "    prob = model.predict_proba(scaled_features)[0][1]\n",
+        "\n",
+        "    st.subheader(\"Prediction Result\")\n",
+        "    if prediction == 1:\n",
+        "        st.error(f\"⚠️ High Risk Detected (Probability: {prob*100:.2f}%)\")\n",
+        "    else:\n",
+        "        st.success(f\"✅ Low Risk Detected (Probability: {(1-prob)*100:.2f}%)\")"
+      ],
+      "execution_count": 3,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Writing streamlit_app.py\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "01386859"
+      },
+      "source": [
+        "### Step 5 — Push Files Directly to GitHub"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "a7d7286f",
+        "outputId": "ca974fe2-7ccc-4c2e-bc15-c475735e0fc8"
+      },
+      "source": [
+        "# 1. Configure Git credentials\n",
+        "!git config --global user.email \"your_email@example.com\"\n",
+        "!git config --global user.name \"anihaah\"\n",
+        "\n",
+        "# 2. Define your GitHub details\n",
+        "# (Generate a token on GitHub -> Settings -> Developer Settings -> Personal Access Tokens)\n",
+        "GITHUB_TOKEN = 'your_github_token_here'\n",
+        "GITHUB_REPO = 'anihaah/genetic-disorder-risk-classifier'\n",
+        "\n",
+        "# 3. Clone the repository into a temporary folder\n",
+        "!git clone https://{GITHUB_TOKEN}@github.com/{GITHUB_REPO}.git temp_repo"
+      ],
+      "execution_count": 6,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Cloning into 'temp_repo'...\n",
+            "remote: Enumerating objects: 8, done.\u001b[K\n",
+            "remote: Counting objects: 100% (8/8), done.\u001b[K\n",
+            "remote: Compressing objects: 100% (8/8), done.\u001b[K\n",
+            "remote: Total 8 (delta 0), reused 0 (delta 0), pack-reused 0 (from 0)\u001b[K\n",
+            "Receiving objects: 100% (8/8), 13.46 KiB | 2.69 MiB/s, done.\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "6ebf8007",
+        "outputId": "91a0be91-e926-490c-bc5c-7dd2a5ed0c54"
+      },
+      "source": [
+        "# 4. Copy the project files from Colab into the cloned repository folder\n",
+        "!cp app.py streamlit_app.py model.pkl scaler.pkl temp_repo/\n",
+        "\n",
+        "# 5. Navigate to the repository directory, commit, and push the updates\n",
+        "%cd temp_repo\n",
+        "!git add app.py streamlit_app.py model.pkl scaler.pkl\n",
+        "!git commit -m \"Add trained model, scaler, Flask API backend, and Streamlit application\"\n",
+        "!git push origin main\n",
+        "\n",
+        "# 6. Change back to original directory\n",
+        "%cd .."
+      ],
+      "execution_count": 7,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "/content/temp_repo\n",
+            "[main 7094b50] Add trained model, scaler, Flask API backend, and Streamlit application\n",
+            " 4 files changed, 66 insertions(+)\n",
+            " create mode 100644 app.py\n",
+            " create mode 100644 model.pkl\n",
+            " create mode 100644 scaler.pkl\n",
+            " create mode 100644 streamlit_app.py\n",
+            "fatal: could not read Password for 'https://your_github_token_here@github.com': No such device or address\n",
+            "/content\n"
+          ]
+        }
       ]
     }
   ]
